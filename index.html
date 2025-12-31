@@ -214,6 +214,7 @@
             display: flex; align-items: center; justify-content: center; cursor: pointer;
             border: 1px solid rgba(255, 255, 255, 0.3);
             backdrop-filter: blur(5px);
+            transition: all 0.3s ease;
         }
 
         @media (max-width: 480px) {
@@ -265,8 +266,7 @@
         </div>
 
         <div class="photo-frame">
-            <!-- เส้นทางรูปภาพตามโฟลเดอร์ image/ ของคุณ -->
-            <img src="image/punch1.jpg" class="slide-img active" alt="Punch 1" onerror="this.src='https://images.unsplash.com/photo-1518199266791-5375a83190b7?w=600'">
+            <img src="image/punch1.jpg" class="slide-img active" alt="Punch 1" onerror="this.style.display='none'">
             <img src="image/punch2.jpg" class="slide-img" alt="Punch 2" onerror="this.style.display='none'">
             <img src="image/punch3.jpg" class="slide-img" alt="Punch 3" onerror="this.style.display='none'">
             <img src="image/punch4.jpg" class="slide-img" alt="Punch 4" onerror="this.style.display='none'">
@@ -276,21 +276,29 @@
         <p class="text-[9px] text-gray-400 mt-6">แตะพื้นที่ว่างเพื่อปิด</p>
     </div>
 
-    <div id="music-btn" onclick="handleMusic()">
-        <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+    <!-- ปุ่มควบคุมเพลง -->
+    <div id="music-btn" onclick="toggleMusic()">
+        <svg id="music-icon" xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>
+        </svg>
     </div>
 
     <script>
-        let audioStarted = false;
+        // ตั้งค่าตัวแปรเบื้องต้น
+        let musicStarted = false;
         const startDate = new Date('2023-10-24T00:00:00');
         let typeInterval;
-        let fireworkCount = 0; 
+        let fireworkCount = 0;
 
-        const openSound = new Audio('https://assets.mixkit.co/sfx/preview/mixkit-paper-slide-1530.mp3');
-        openSound.volume = 0.5;
+        // ดึงไฟล์เพลงจาก audio/song.mp3
+        const mainMusic = new Audio('audio/song.mp3');
+        mainMusic.loop = true;
+        mainMusic.volume = 0.5;
 
+        // ข้อความในจดหมาย
         const loveMessage = `ไออ้วนขอบคุณนะที่อยู่ด้วยกันมา<br>ขอบคุณที่รักกัน<br>ขอบคุณที่คอยดูแลกัน<br>ขอบคุณที่ซื้อของเล่นให้<br>และอะไรหลายๆอย่าขอบคุณมากนะ<br>หมดปี 2025 แล้วนะ จับมือและเดินข้ามปีไปด้วยกันนะ<br><span style="color: #ff4d6d; font-size: 1.4rem; display: block; margin-top: 10px;">รักนะค่ะ💖😘</span>`;
 
+        // ฟังก์ชันพิมพ์ตัวอักษร
         function typeWriter(el, text, speed = 40, callback = null) {
             el.innerHTML = '';
             let i = 0, charArray = [], isTag = false, currentTag = "";
@@ -300,7 +308,6 @@
                 else if(isTag) { currentTag += char; }
                 else { charArray.push(char); }
             }
-            
             if (typeInterval) clearInterval(typeInterval);
             typeInterval = setInterval(() => {
                 if (i < charArray.length) { el.innerHTML += charArray[i]; i++; }
@@ -311,12 +318,30 @@
             }, speed);
         }
 
+        // เริ่มต้นเปลี่ยนหน้า
         function goToNames() {
             document.getElementById('stage-init-envelope').classList.add('hidden');
             document.getElementById('stage-names').classList.remove('hidden');
-            if(!audioStarted) handleMusic();
+            
+            // เริ่มเล่นเพลงเมื่อมีการโต้ตอบครั้งแรก
+            if(!musicStarted) {
+                mainMusic.play().catch(e => console.log("Autoplay blocked"));
+                musicStarted = true;
+                document.getElementById('music-btn').style.background = '#ff4d6d';
+            }
+            
             animateFireworks();
             setTimeout(goToTimer, 3500);
+        }
+
+        function toggleMusic() {
+            if (mainMusic.paused) {
+                mainMusic.play();
+                document.getElementById('music-btn').style.background = '#ff4d6d';
+            } else {
+                mainMusic.pause();
+                document.getElementById('music-btn').style.background = 'rgba(255, 255, 255, 0.15)';
+            }
         }
 
         function goToTimer() {
@@ -360,7 +385,6 @@
         }
 
         function openFinalLetter() {
-            openSound.play().catch(e => {});
             document.getElementById('overlay').style.display = 'block';
             document.getElementById('letter-modal').classList.add('open');
             typeWriter(document.getElementById('love-text'), loveMessage, 40, () => {
@@ -401,7 +425,7 @@
             }, 3000);
         }
 
-        // --- Fireworks Animation ---
+        // --- ระบบพลุ ---
         const canvas = document.getElementById('fireworksCanvas');
         const ctx = canvas.getContext('2d');
         let fireworks = [], particles = [];
@@ -472,17 +496,6 @@
             fireworks = fireworks.filter(f => { f.update(); f.draw(); return !f.done; });
             particles = particles.filter(p => { p.update(); p.draw(); return p.alpha > 0; });
             requestAnimationFrame(animateFireworks);
-        }
-
-        let audio = null;
-        function handleMusic() {
-            audioStarted = true;
-            if (!audio) { 
-                audio = new Audio('https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'); 
-                audio.loop = true; audio.volume = 0.3;
-            }
-            if (audio.paused) { audio.play().catch(e => {}); document.getElementById('music-btn').style.background = '#ff4d6d'; } 
-            else { audio.pause(); document.getElementById('music-btn').style.background = 'rgba(255, 255, 255, 0.15)'; }
         }
     </script>
 </body>
